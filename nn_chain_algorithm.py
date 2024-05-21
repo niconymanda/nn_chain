@@ -56,7 +56,6 @@ def nn_chain(mu, k = 5):
 
             # if no knn has been calculated or no knn is active
             if all(knn[x]) == 0 or all(size[knn[x]]) == 0:
-                # SciPy uses Euclidean for this
                 dist = wrapper_ward(x, size, mu)
                 knn[x], knn_dist[x] = get_top_k(dist, k)
 
@@ -72,7 +71,6 @@ def nn_chain(mu, k = 5):
                 split_index = knn[x].index(0)
                 merged_clusters = knn[x][:split_index] 
                 unioned_clusters = np.array(list(set(mapping[merged_clusters])), dtype=int) 
-                # SciPy uses Euclidean for this
                 unioned_clusters_dist = [ward(size[x], size[z], mu[x], mu[z]) for z in unioned_clusters]
                 
                 rest = knn[x][split_index:]
