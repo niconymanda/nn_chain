@@ -3,7 +3,7 @@ import numpy as np
 # AUX FUNCTIONS 
 
 def ward(size_a, size_b, mu_a, mu_b):
-    return (size_a * size_b) / (size_a + size_b) * np.sqrt( sum ( ( mu_a - mu_b ) **2 ) ) #np.linalg.norm( mu_a - mu_b )**2
+    return (size_a * size_b) / (size_a + size_b) * np.sqrt( sum ( ( mu_a - mu_b ) **2 ) )
 
 def wrapper_ward(x, size, mu):
     """Calculates all distances from one point to the others"""
