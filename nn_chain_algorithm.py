@@ -3,7 +3,7 @@ import numpy as np
 # AUX FUNCTIONS 
 
 def ward(size_a, size_b, mu_a, mu_b):
-    return (size_a * size_b) / (size_a + size_b) * np.linalg.norm( mu_a - mu_b )**2
+    return (size_a * size_b) / (size_a + size_b) * np.sqrt( sum ( ( mu_a - mu_b ) **2 ) ) #np.linalg.norm( mu_a - mu_b )**2
 
 def wrapper_ward(x, size, mu):
     """Calculates all distances from one point to the others"""
@@ -53,24 +53,32 @@ def nn_chain(mu, k = 5):
         # This find the minimal distance and checks whether the clusters are reciprocal
         while True:
             x = cluster_chain[chain_length - 1]
-
+            print(f"x = {x}")
+            print(f"knn of x = {knn[x], not any(knn[x])}")
+            print(f"condition of size of all knns of x = {size[knn[x]], not any(size[knn[x]])}")
             # if no knn has been calculated or no knn is active
-            if all(knn[x]) == 0 or all(size[knn[x]]) == 0:
+            if not any(knn[x]) or not any(size[knn[x]]):
+                # SciPy uses Euclidean for this
                 dist = wrapper_ward(x, size, mu)
                 knn[x], knn_dist[x] = get_top_k(dist, k)
+                print(f"all distances to x = {dist}")
 
             y = knn[x][0]
-
+            print(f"original y = {y}")
+            
             # if y has been merged
             if size[y] == 0:
+                print("original y has been merged")
                 """
                 find the first unsplit element, so that we can find out with which element it has merged.
                 find out whether the order of the knn[x] has changed. 
                 if any of the merged element are last in the list, we can no longer ensure these are in the top k. These are popped.
                 """
-                split_index = knn[x].index(0)
+                split_index = np.where(size[knn[x]] > 0)[0][0]
+                print(f"split i = {split_index}")
                 merged_clusters = knn[x][:split_index] 
                 unioned_clusters = np.array(list(set(mapping[merged_clusters])), dtype=int) 
+                # SciPy uses Euclidean for this
                 unioned_clusters_dist = [ward(size[x], size[z], mu[x], mu[z]) for z in unioned_clusters]
                 
                 rest = knn[x][split_index:]
@@ -81,17 +89,27 @@ def nn_chain(mu, k = 5):
                 _argsorted_dists = np.argsort(_dists)
                 _i = np.where(_argsorted_dists == len(_dists) - 1)[0][0]
                 reduced_dist = _argsorted_dists[:_i + 1]
+                
                 knn[x] = np.array([_knn[i] for i in reduced_dist])
                 knn_dist[x] = _dists[reduced_dist]
+
+                y = knn[x][0]
+
+            print(f"knn[x] = {knn[x]}")
+            print(f"dists = {knn_dist[x]}")
+            print(f"y = {y}")
 
             min_dist = knn_dist[x][0]
 
             # Clusters reciprocal ?
             if chain_length > 1 and y == cluster_chain[chain_length - 2]:
+                print(f"clusters reciprocal; merging {x} and {y}")
                 break
 
             cluster_chain[chain_length] = y
             chain_length += 1
+
+            print()
         
         # Merge clusters x and y and pop them from stack.
         chain_length -= 2
@@ -110,6 +128,7 @@ def nn_chain(mu, k = 5):
         Z[l, 3] = size_xy
 
         xy_centroid = (size[x] * mu[x] + size[y] * mu[y] ) / ( size_xy )
+        print(f"centroid = {xy_centroid}")
         mu = np.vstack([mu, xy_centroid])
         size = np.append(size, size_xy)
 
@@ -123,5 +142,7 @@ def nn_chain(mu, k = 5):
 
         knn[x] = [0] * k
         knn[y] = [0] * k
+        print()
+        print()
 
     return Z
