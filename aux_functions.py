@@ -1,6 +1,7 @@
 import numpy as np
 
 def ward(size_a, size_b, X_a, X_b):
+    """calculates the ward for one cluster to another"""
     return (size_a * size_b) / (size_a + size_b) * np.sqrt( sum ( ( X_a - X_b ) **2 ) )
 
 def wrapper_ward(i, size, X):
@@ -20,6 +21,7 @@ def get_top_k(distances, k):
     return top_k_sorted, top_k_dist_sorted
 
 def dist_calculation(i, targets, size, X):
+    """calculates new ward for new mapping"""
     if targets.size:
         return np.array([ward(size[i], size[t], X[i], X[t]) for t in targets])
     else:
