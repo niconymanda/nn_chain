@@ -16,7 +16,7 @@ def nn_chain(mu, k = 5):
     knn = [np.zeros(k, dtype=int) for _ in range(2 * n - 1)]
     knn_dist = [np.zeros(k, dtype=float) for _ in range(2 * n - 1)]
     mapping = np.full((2*n-1), np.inf)
-    
+
     # Begin
     for l in range(n - 1):
 
@@ -30,6 +30,7 @@ def nn_chain(mu, k = 5):
 
         # This find the minimal distance and checks whether the clusters are reciprocal
         while True:
+            print("1 WHILE LOOP")
             x = cluster_chain[chain_length - 1]
             print(f"x = {x}")
             print(f"knn of x = {knn[x], not any(knn[x])}")
