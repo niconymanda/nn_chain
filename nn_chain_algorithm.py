@@ -30,11 +30,8 @@ def nn_chain(mu, k = 5):
 
         # This find the minimal distance and checks whether the clusters are reciprocal
         while True:
-            print("1 WHILE LOOP")
             x = cluster_chain[chain_length - 1]
             print(f"x = {x}")
-            print(f"knn of x = {knn[x], not any(knn[x])}")
-            print(f"condition of size of all knns of x = {size[knn[x]], not any(size[knn[x]])}")
             # if no knn has been calculated or no knn is active
             if not any(knn[x]) or not any(size[knn[x]]):
                 # SciPy uses Euclidean for this
@@ -74,8 +71,7 @@ def nn_chain(mu, k = 5):
 
                 y = knn[x][0]
 
-            print(f"knn[x] = {knn[x]}")
-            print(f"dists = {knn_dist[x]}")
+            print(f"knn[x] = {knn[x]}, dists = {knn_dist[x]}")
             print(f"y = {y}")
 
             min_dist = knn_dist[x][0]
