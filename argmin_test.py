@@ -24,8 +24,12 @@ def test_nn_chain(X, k = 5):
     # Activate loop
     while active:
 
-        if len(active) == 1:
-            break
+        if len(active) == 2:
+            i, j = list(active)
+            size_xy = size[i] + size[j]
+            _dist = ward(size[i], size[j], X[i], X[j])
+            Z = np.vstack([Z, [i, j, _dist, size_xy]])
+            return Z
         
         # New chain
         if chain_length == 0:
