@@ -1,120 +1,116 @@
 import numpy as np
-from aux_functions import *
 
-def test_nn_chain(X, k = 5):
+def ward(size_a, size_b, pos_a, pos_b):
+    """calculates the ward for one cluster to another"""
+    return (size_a * size_b) / (size_a + size_b) * np.sum((pos_a - pos_b)**2)
 
-    """Calculates the NN chain algorithm w on the fly distances"""
+def get_top_k(i, size, pos, active, k):
+    """Selects the top k of distances list and sorts these."""
+    dists = np.array([ward(size[i], size[j], pos[i], pos[j]) for j in active if j != i])
+    active_ = np.array([j for j in active if j != i])
+    sorting = np.argsort(dists)[:k]
+    top_k_sorted = active_[sorting]
+    return top_k_sorted
 
-    # Variable definition
+def knn_chain(X, k = 5):
+    """Calculates the NN chain algorithm with on the fly distances"""
+    
     n = len(X)
-    size = np.ones(n, dtype=np.intc)
+    pos = [X[i] for i in range(n)]
+    size = [1 for i in range(n)]
 
-    active = {i for i, _ in enumerate(X)}
-    active_bool = [True for _ in X]
+    active = {i for i in range(n)}
+    mapping = {i: i for i in range(n)}
+    reverse_mapping = {i: {i} for i in range(n)}
 
+    chain = []
     knn = []
-    knn_dist = []
-    mapping = np.full((2*n-1), np.inf)
 
-    cluster_chain = np.empty(0, dtype=np.intc)
-    chain_length = 0
-
-    Z = np.empty((0,4), int)
+    dendrogram = []
 
     # Activate loop
     while active:
 
         if len(active) == 2:
             i, j = list(active)
-            size_xy = size[i] + size[j]
-            _dist = ward(size[i], size[j], X[i], X[j])
-            Z = np.vstack([Z, [i, j, _dist, size_xy]])
-            return Z
+            size_ = size[i] + size[j]
+            dist_ = ward(size[i], size[j], pos[i], pos[j])
+            dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
+            return dendrogram
         
         # New chain
-        if chain_length == 0:
+        if not len(chain):
             i = next(iter(active))
-            cluster_chain = np.append(cluster_chain, i)
-            _active = active.copy()
-            _active.remove(i)
-            _active = np.array(list(_active))
+            chain.append(i)
 
-            chain_length = 1
-            _dists = wrapper_ward(i, size, X, _active)
-            _knn, _knn_dist = get_top_k(_dists, _active, k)
-            knn.append(_knn)
-            knn_dist.append(_knn_dist)
+            knn_ = get_top_k(i, size, pos, active, k)
+            knn.append(knn_)
 
-        while cluster_chain.size:
-            i = cluster_chain[chain_length - 1]
+        while len(chain):
+            print()
+            print(chain)
+            
+            i = chain[-1]
 
-            m = 0
-            ind = 1
-
+            m = -1
             for index, nn in enumerate(knn[-1]):
-                if active_bool[nn]:
+                if nn in active:
                     m = index
-                    ind = 0
                     break
 
-            if ind:
-                _dists = wrapper_ward(i, size, X, _active, cluster_chain[chain_length - 2])
-                knn[-1], knn_dist[-1] = get_top_k(_dists, _active, k)
+            if m < 0:
+                knn[-1] = get_top_k(i, size, pos, active, k)
+                j = knn[-1][0]
+                print("in IF")
+                print(j)
+            else:
+                print("in ELSE")
+                print(f"m = {m}")
+                print(f"original knn = {knn[-1]}")
+                knn_ = [mapping[nn] for nn in knn[-1][:m]] + [knn[-1][m]]
+                print(knn_)
+                dists = [ward(size[i], size[j], pos[i], pos[j]) for j in knn_]
+                print(dists)
+                j = knn_[np.argmin(dists)]
+                print(j)
 
-            if knn[-1][:m].size:
-                _knn = np.array(list(set(mapping[knn[-1][:m]])), dtype=int)
-                knn[-1] = np.append(_knn, knn[-1][m:])
-                knn_dist[-1] = np.append(dist_calculation(i, _knn, size, X), knn_dist[-1][m:])
-
-            j = knn[-1][np.argmin(knn_dist[-1])]
-            
-            if chain_length > 1 and j == cluster_chain[chain_length - 2]:
+            if len(chain) > 1 and chain[-2] == j:
                 break
 
-            cluster_chain = np.append(cluster_chain, j)
-            chain_length += 1
-           
-            _active = active.copy()
-            _active.remove(j)
-            _active = np.array(list(_active))
+            chain.append(j)
 
-            _dists = wrapper_ward(j, size, X, _active, i)
-            _knn, _knn_dist = get_top_k(_dists, _active, k)
-            knn.append(_knn)
-            knn_dist.append(_knn_dist)
-        
-        # Merging i and j
-        chain_length -= 2
+            knn_ = get_top_k(j, size, pos, active, k)
+            knn.append(knn_)
 
-        size_xy = size[i] + size[j]
-
-        # Record the new node
-        Z = np.vstack([Z, [i, j, min(knn_dist[-1]), size_xy]])
-
-        ij_centroid = (size[i] * X[i] + size[j] * X[j] ) / ( size_xy )
-        
-        X = np.vstack([X, ij_centroid])
-        
+        # Merge
+        print(f"merging {i, j}")
+        dist_ = ward(size[i], size[j], pos[i], pos[j])
+        size_ = size[i] + size[j]
+        dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
+    
+        # Update variables
+        centroid = (size[i] * pos[i] + size[j] * pos[j] ) / size_
+        pos.append(centroid)
+        new_index = len(size)
         size[i] = 0
         size[j] = 0
-        size = np.append(size, size_xy)
-
-        new_index = len(X) - 1
-
+        size.append(size_)
+        
+        # Update mapping
         mapping[i] = new_index
         mapping[j] = new_index
-        mapping = np.array([new_index if m == i or m == j else m for m in mapping])
-
+        for index in reverse_mapping[i] | reverse_mapping[j]:
+            mapping[index] = new_index
+        print(f"mapping[i], mapping[j] = {mapping[i], mapping[j]}")
+            
+        reverse_mapping[new_index] = reverse_mapping.pop(i) | reverse_mapping.pop(j)
+        
+        # Update active set
         active.remove(i)
         active.remove(j)
         active.add(new_index)
 
-        active_bool[i] = False
-        active_bool[j] = False
-        active_bool = np.append(active_bool, True)
+        chain = chain[:-2]
+        knn = knn[:-2]
 
-        cluster_chain = cluster_chain[:-2]
-        knn = knn[:chain_length]
-        knn_dist = knn_dist[:chain_length]        
-
-    return Z
+    return dendrogram
