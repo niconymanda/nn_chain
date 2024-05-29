@@ -7,7 +7,7 @@ def ward(size_a, size_b, X_a, X_b):
 
 def wrapper_ward(i, size, X, active, prev_element = None):
     """Calculates all distances from one point to all other active nodes"""
-    return np.array([ward(size[i], size[j], X[i], X[j]) - 1e-5 if j == prev_element #prev_element is not None and 
+    return np.array([ward(size[i], size[j], X[i], X[j]) - 1e-5 if j == prev_element
             else ward(size[i], size[j], X[i], X[j]) for j in active])
 
 

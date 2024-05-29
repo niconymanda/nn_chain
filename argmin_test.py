@@ -41,14 +41,11 @@ def test_nn_chain(X, k = 5):
 
             chain_length = 1
             _dists = wrapper_ward(i, size, X, _active)
-            print(_dists, _active, i)
             _knn, _knn_dist = get_top_k(_dists, _active, k)
             knn.append(_knn)
             knn_dist.append(_knn_dist)
 
         while cluster_chain.size:
-            print("------------")
-            print(f"cluster_chain = {cluster_chain}, chain_length = {chain_length} ==> {cluster_chain[chain_length-1]}")
             i = cluster_chain[chain_length - 1]
 
             m = 0
@@ -60,7 +57,6 @@ def test_nn_chain(X, k = 5):
                     ind = 0
                     break
 
-            print(f"m  = {m}")
             if ind:
                 _dists = wrapper_ward(i, size, X, _active, cluster_chain[chain_length - 2])
                 knn[-1], knn_dist[-1] = get_top_k(_dists, _active, k)
@@ -72,9 +68,6 @@ def test_nn_chain(X, k = 5):
 
             j = knn[-1][np.argmin(knn_dist[-1])]
             
-            print(f"i = {i}, j = {j}")
-            print(f"knn = {knn[-1]}, dists = {knn_dist[-1]}")
-
             if chain_length > 1 and j == cluster_chain[chain_length - 2]:
                 break
 
@@ -89,9 +82,7 @@ def test_nn_chain(X, k = 5):
             _knn, _knn_dist = get_top_k(_dists, _active, k)
             knn.append(_knn)
             knn_dist.append(_knn_dist)
-
-        print()
-        print(f"merging {i, j}")
+        
         # Merging i and j
         chain_length -= 2
 
@@ -101,7 +92,7 @@ def test_nn_chain(X, k = 5):
         Z = np.vstack([Z, [i, j, min(knn_dist[-1]), size_xy]])
 
         ij_centroid = (size[i] * X[i] + size[j] * X[j] ) / ( size_xy )
-        print(f"centroid of {i}, {j} = {ij_centroid}")
+        
         X = np.vstack([X, ij_centroid])
         
         size[i] = 0
@@ -124,9 +115,6 @@ def test_nn_chain(X, k = 5):
 
         cluster_chain = cluster_chain[:-2]
         knn = knn[:chain_length]
-        knn_dist = knn_dist[:chain_length]
-
-        print()
-        print()
+        knn_dist = knn_dist[:chain_length]        
 
     return Z

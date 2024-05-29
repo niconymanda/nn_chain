@@ -35,28 +35,25 @@ def nn_chain(X, k = 5):
             _active = active.copy()
             _active.remove(i)
             _active = np.array(list(_active))
-
-            print(f"i = {i}")
+            
             # if no knn has been calculated or no knn is active
             if not any(knn[i]) or not any(size[knn[i]]):
                 # SciPj uses Euclidean for this
                 dist = wrapper_ward(i, size, X, _active)
                 knn[i], knn_dist[i] = get_top_k(dist, _active, k)
-                print(f"all distances to i = {dist}")
 
             j = knn[i][0]
-            print(f"original j = {j}")
             
             # if j has been merged
             if size[j] == 0:
-                print("original j has been merged")
+                
                 """
                 find the first unsplit element, so that we can find out with which element it has merged.
                 find out whether the order of the knn[i] has changed. 
                 if anj of the merged element are last in the list, we can no longer ensure these are in the top k. These are popped.
                 """
                 split_index = np.where(size[knn[i]] > 0)[0][0]
-                print(f"split i = {split_index}")
+                
                 merged_clusters = knn[i][:split_index] 
                 unioned_clusters = np.array(list(set(mapping[merged_clusters])), dtype=int) 
                 # SciPj uses Euclidean for this
@@ -73,24 +70,17 @@ def nn_chain(X, k = 5):
                 
                 knn[i] = np.array([_knn[i] for i in reduced_dist])
                 knn_dist[i] = _dists[reduced_dist]
-
                 j = knn[i][0]
-
-            print(f"knn[i] = {knn[i]}, dists = {knn_dist[i]}")
-            print(f"j = {j}")
 
             min_dist = knn_dist[i][0]
 
             # Clusters reciprocal ?
             if chain_length > 1 and j == cluster_chain[chain_length - 2]:
-                print(f"clusters reciprocal; merging {i} and {j}")
                 break
 
             cluster_chain[chain_length] = j
             chain_length += 1
 
-            print()
-        
         # Merge clusters i and j and pop them from stack.
         chain_length -= 2
 
@@ -108,7 +98,7 @@ def nn_chain(X, k = 5):
         Z[l, 3] = size_ij
 
         ij_centroid = (size[i] * X[i] + size[j] * X[j] ) / ( size_ij )
-        print(f"centroid = {ij_centroid}")
+        
         X = np.vstack([X, ij_centroid])
         size = np.append(size, size_ij)
 
@@ -120,14 +110,13 @@ def nn_chain(X, k = 5):
         mapping[j] = new_index
         mapping = np.array([new_index if m == i or m == j else m for m in mapping])
 
-        print(active, i, j)
+        
         active.remove(i)
         active.remove(j)
         active.add(new_index)
 
         knn[i] = [0] * k
         knn[j] = [0] * k
-        print()
-        print()
+        
 
     return Z
