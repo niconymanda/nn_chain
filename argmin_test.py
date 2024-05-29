@@ -10,7 +10,7 @@ def test_nn_chain(X, k = 5):
     size = np.ones(n, dtype=np.intc)
 
     active = {i for i, _ in enumerate(X)}
-    _active = [True for _ in X]
+    active_bool = [True for _ in X]
 
     knn = []
     knn_dist = []
@@ -35,10 +35,14 @@ def test_nn_chain(X, k = 5):
         if chain_length == 0:
             i = next(iter(active))
             cluster_chain = np.append(cluster_chain, i)
+            _active = active.copy()
+            _active.remove(i)
+            _active = np.array(list(_active))
 
-            chain_length = 1 # Do i still need this variable ?
-            _dists = wrapper_ward(i, size, X)
-            _knn, _knn_dist = get_top_k(_dists, k)
+            chain_length = 1
+            _dists = wrapper_ward(i, size, X, _active)
+            print(_dists, _active, i)
+            _knn, _knn_dist = get_top_k(_dists, _active, k)
             knn.append(_knn)
             knn_dist.append(_knn_dist)
 
@@ -51,15 +55,15 @@ def test_nn_chain(X, k = 5):
             ind = 1
 
             for index, nn in enumerate(knn[-1]):
-                if _active[nn]:
+                if active_bool[nn]:
                     m = index
                     ind = 0
                     break
 
             print(f"m  = {m}")
             if ind:
-                _dists = wrapper_ward(i, size, X, cluster_chain[chain_length - 2])
-                knn[-1], knn_dist[-1] = get_top_k(_dists, k)
+                _dists = wrapper_ward(i, size, X, _active, cluster_chain[chain_length - 2])
+                knn[-1], knn_dist[-1] = get_top_k(_dists, _active, k)
 
             if knn[-1][:m].size:
                 _knn = np.array(list(set(mapping[knn[-1][:m]])), dtype=int)
@@ -67,6 +71,7 @@ def test_nn_chain(X, k = 5):
                 knn_dist[-1] = np.append(dist_calculation(i, _knn, size, X), knn_dist[-1][m:])
 
             j = knn[-1][np.argmin(knn_dist[-1])]
+            
             print(f"i = {i}, j = {j}")
             print(f"knn = {knn[-1]}, dists = {knn_dist[-1]}")
 
@@ -76,8 +81,12 @@ def test_nn_chain(X, k = 5):
             cluster_chain = np.append(cluster_chain, j)
             chain_length += 1
            
-            _dists = wrapper_ward(j, size, X, prev_element=i)
-            _knn, _knn_dist = get_top_k(_dists, k)
+            _active = active.copy()
+            _active.remove(j)
+            _active = np.array(list(_active))
+
+            _dists = wrapper_ward(j, size, X, _active, i)
+            _knn, _knn_dist = get_top_k(_dists, _active, k)
             knn.append(_knn)
             knn_dist.append(_knn_dist)
 
@@ -109,9 +118,9 @@ def test_nn_chain(X, k = 5):
         active.remove(j)
         active.add(new_index)
 
-        _active[i] = False
-        _active[j] = False
-        _active = np.append(_active, True)
+        active_bool[i] = False
+        active_bool[j] = False
+        active_bool = np.append(active_bool, True)
 
         cluster_chain = cluster_chain[:-2]
         knn = knn[:chain_length]
