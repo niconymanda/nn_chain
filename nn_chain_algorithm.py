@@ -94,7 +94,7 @@ def nn_chain(X, k = 5):
         # Record the new node.
         Z[l, 0] = i
         Z[l, 1] = j
-        Z[l, 2] = min_dist
+        Z[l, 2] = np.sqrt(2 * min_dist)
         Z[l, 3] = size_ij
 
         ij_centroid = (size[i] * X[i] + size[j] * X[j] ) / ( size_ij )

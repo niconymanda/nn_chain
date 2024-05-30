@@ -47,7 +47,7 @@ def knn_chain(X, k = 5):
             knn.append(knn_)
 
         while len(chain):
-            
+
             i = chain[-1]
 
             m = -1

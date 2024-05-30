@@ -2,7 +2,7 @@ import numpy as np
 
 def ward(size_a, size_b, X_a, X_b):
     """calculates the ward for one cluster to another"""
-    return (size_a * size_b) / (size_a + size_b) * sum ( ( X_a - X_b ) **2 )
+    return (size_a * size_b) / (size_a + size_b) * np.sum ( ( X_a - X_b ) **2 )
 
 
 def wrapper_ward(i, size, X, active, prev_element = None):
