@@ -6,8 +6,8 @@ def ward(size_a, size_b, pos_a, pos_b):
 
 def get_top_k(i, size, pos, active, k):
     """Selects the top k of distances list and sorts these."""
-    dists = np.array([ward(size[i], size[j], pos[i], pos[j]) for j in active if j != i])
     active_ = np.array([j for j in active if j != i])
+    dists = np.array([ward(size[i], size[j], pos[i], pos[j]) for j in active_])
     sorting = np.argsort(dists)[:k]
     top_k_sorted = active_[sorting]
     return top_k_sorted
@@ -47,8 +47,6 @@ def knn_chain(X, k = 5):
             knn.append(knn_)
 
         while len(chain):
-            print()
-            print(chain)
             
             i = chain[-1]
 
@@ -61,18 +59,19 @@ def knn_chain(X, k = 5):
             if m < 0:
                 knn[-1] = get_top_k(i, size, pos, active, k)
                 j = knn[-1][0]
-                print("in IF")
-                print(j)
             else:
-                print("in ELSE")
-                print(f"m = {m}")
-                print(f"original knn = {knn[-1]}")
-                knn_ = [mapping[nn] for nn in knn[-1][:m]] + [knn[-1][m]]
-                print(knn_)
+                indices = set()
+                for nn in knn[-1][:m]:
+                    indices |= reverse_mapping[nn]
+                    
+                clusters = set()
+                for index in indices:
+                    clusters.add(mapping[index])
+                    
+                    
+                knn_ = list(clusters) + [knn[-1][m]]
                 dists = [ward(size[i], size[j], pos[i], pos[j]) for j in knn_]
-                print(dists)
                 j = knn_[np.argmin(dists)]
-                print(j)
 
             if len(chain) > 1 and chain[-2] == j:
                 break
@@ -83,7 +82,6 @@ def knn_chain(X, k = 5):
             knn.append(knn_)
 
         # Merge
-        print(f"merging {i, j}")
         dist_ = ward(size[i], size[j], pos[i], pos[j])
         size_ = size[i] + size[j]
         dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
@@ -91,19 +89,17 @@ def knn_chain(X, k = 5):
         # Update variables
         centroid = (size[i] * pos[i] + size[j] * pos[j] ) / size_
         pos.append(centroid)
+        
         new_index = len(size)
         size[i] = 0
         size[j] = 0
         size.append(size_)
         
         # Update mapping
-        mapping[i] = new_index
-        mapping[j] = new_index
         for index in reverse_mapping[i] | reverse_mapping[j]:
             mapping[index] = new_index
-        print(f"mapping[i], mapping[j] = {mapping[i], mapping[j]}")
             
-        reverse_mapping[new_index] = reverse_mapping.pop(i) | reverse_mapping.pop(j)
+        reverse_mapping[new_index] = reverse_mapping[i] | reverse_mapping[j]
         
         # Update active set
         active.remove(i)
