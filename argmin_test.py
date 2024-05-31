@@ -56,8 +56,9 @@ def knn_chain(X, k = 5):
                     m = index
                     break
 
-            if m < 0:
-                knn[-1] = get_top_k(i, size, pos, active, k)
+            if m <= 0:
+                if m < 0:
+                    knn[-1] = get_top_k(i, size, pos, active, k)
                 j = knn[-1][0]
             else:
                 indices = set()
