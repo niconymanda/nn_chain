@@ -12,7 +12,7 @@ def get_top_k(i, size, pos, active, k):
     top_k_sorted = active_[sorting]
     return top_k_sorted
 
-def knn_chain(X, k = 5):
+def py_knn_chain(X, k = 5):
     """Calculates the NN chain algorithm with on the fly distances"""
     
     n = len(X)
@@ -35,6 +35,7 @@ def knn_chain(X, k = 5):
             i, j = list(active)
             size_ = size[i] + size[j]
             dist_ = ward(size[i], size[j], pos[i], pos[j])
+            print(type(pos[i]))
             dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
             return dendrogram
         
