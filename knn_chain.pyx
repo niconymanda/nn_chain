@@ -1,52 +1,77 @@
-import cython
 import numpy as np
 cimport numpy as np
-from libc.math cimport sqrt
+import cython
 
-def ward(int size_a, int size_b, np.ndarray pos_a, np.ndarray pos_b):
-    """calculates the ward for one cluster to another"""
-
+@cython.infer_types(True) 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+cdef double euclidean_norm_squared(np.ndarray[double, ndim=1] pos_a, np.ndarray[double, ndim=1] pos_b):
+    """Calculate np.sum( (pos_a - pos_b)**2 )"""
+    cdef int i, n = pos_a.shape[0]
+    cdef double result = 0.0
     cdef double diff = 0.0
 
-    for a, b in zip(pos_a, pos_b):
-        diff += (a - b)**2
+    for i in range(n):
+        diff = pos_a[i] - pos_b[i]
+        result += (diff) * (diff)
+    return result
 
-    return (size_a * size_b) / (size_a + size_b) * diff
+@cython.infer_types(True) 
+@cython.wraparound(False)
+@cython.nonecheck(False)
+cdef double ward(int size_a, int size_b, np.ndarray[double, ndim=1] pos_a, np.ndarray[double, ndim=1] pos_b):
+    """calculates the ward for one cluster to another"""
+    return (size_a * size_b) / (size_a + size_b) * euclidean_norm_squared(pos_a, pos_b)
 
-
-def get_top_k(int i, list size, list pos, set active, int k):
+@cython.infer_types(True) 
+@cython.wraparound(False)
+cpdef get_top_k(i, size, pos, active, k):
     """Selects the top k of distances list and sorts these."""
-    active_ = np.array([j for j in active if j != i])
-    dists = [ward(size[i], size[j], pos[i], pos[j]) for j in active_]
-    sorting = np.argsort(dists)[:k]
+    cdef int s = len(active)-1
+    cdef np.ndarray[int, ndim=1] active_ = np.empty(s, dtype=np.int32)
+    cdef np.ndarray[double, ndim=1] dists = np.empty(s, dtype=np.double)
+    cdef int index = 0
+
+    for j in active:
+        if j != i:
+            active_[index] = j
+            dists[index] = ward(size[i], size[j], pos[i], pos[j])
+            index += 1
+
+    sorting = np.argsort(dists)[:k] # numpy is faster than own function with 0.001s with X of shape (10000,100), 8 gaussians
     top_k_sorted = active_[sorting]
     return top_k_sorted
 
-
-def knn_chain(list X, int k = 5):
+@cython.infer_types(True) 
+cpdef py_knn_chain_c(X, k = 5):
     """Calculates the NN chain algorithm with on the fly distances"""
     
-    cdef int n = len(X)
-    cdef list pos = [np.array(X[i]) for i in range(n)]
-    cdef list size = [1 for i in range(n)]
+    n = len(X)
+    pos = [X[i] for i in range(n)]
+    size = [1 for i in range(n)]
 
-    cdef set active = {i for i in range(n)}
-    cdef dict mapping = {i: i for i in range(n)}
-    cdef dict reverse_mapping = {i: {i} for i in range(n)}
+    active = {i for i in range(n)}
+    mapping = {i: i for i in range(n)}
+    reverse_mapping = {i: {i} for i in range(n)}
 
-    cdef list chain = []
-    cdef list knn = []
+    chain = []
+    knn = []
 
-    cdef list dendrogram = []
+    dendrogram = []
+
+    cdef int i, j, m, index, nn, new_index 
+    cdef double dist_
+    #cdef list knn_, dists
 
     # Activate loop
     while active:
 
         if len(active) == 2:
-            i, j = list(active)
+            i, j = active
             size_ = size[i] + size[j]
             dist_ = ward(size[i], size[j], pos[i], pos[j])
-            dendrogram.append([i, j, sqrt(2 * dist_), size_])
+            dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
             return dendrogram
         
         # New chain
@@ -60,6 +85,7 @@ def knn_chain(list X, int k = 5):
         while len(chain):
 
             i = chain[-1]
+
             m = -1
             for index, nn in enumerate(knn[-1]):
                 if nn in active:
@@ -94,7 +120,7 @@ def knn_chain(list X, int k = 5):
         # Merge
         dist_ = ward(size[i], size[j], pos[i], pos[j])
         size_ = size[i] + size[j]
-        dendrogram.append([i, j, sqrt(2 * dist_), size_])
+        dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
     
         # Update variables
         centroid = (size[i] * pos[i] + size[j] * pos[j] ) / size_
