@@ -6,8 +6,8 @@ import cython
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.nonecheck(False)
-cdef double euclidean_norm_squared(np.ndarray[double, ndim=1] pos_a, np.ndarray[double, ndim=1] pos_b):
-    """Calculate np.sum( (pos_a - pos_b)**2 )"""
+cdef double ward(int size_a, int size_b, np.ndarray[double, ndim=1] pos_a, np.ndarray[double, ndim=1] pos_b):
+    """calculates the ward for one cluster to another"""
     cdef int i, n = pos_a.shape[0]
     cdef double result = 0.0
     cdef double diff = 0.0
@@ -15,14 +15,8 @@ cdef double euclidean_norm_squared(np.ndarray[double, ndim=1] pos_a, np.ndarray[
     for i in range(n):
         diff = pos_a[i] - pos_b[i]
         result += (diff) * (diff)
-    return result
 
-@cython.infer_types(True) 
-@cython.wraparound(False)
-@cython.nonecheck(False)
-cdef double ward(int size_a, int size_b, np.ndarray[double, ndim=1] pos_a, np.ndarray[double, ndim=1] pos_b):
-    """calculates the ward for one cluster to another"""
-    return (size_a * size_b) / (size_a + size_b) * euclidean_norm_squared(pos_a, pos_b)
+    return (size_a * size_b) / (size_a + size_b) * result
 
 @cython.infer_types(True) 
 @cython.wraparound(False)
@@ -39,12 +33,12 @@ cpdef get_top_k(i, size, pos, active, k):
             dists[index] = ward(size[i], size[j], pos[i], pos[j])
             index += 1
 
-    sorting = np.argsort(dists)[:k] # numpy is faster than own function with 0.001s with X of shape (10000,100), 8 gaussians
+    sorting = np.argsort(dists)[:k]
     top_k_sorted = active_[sorting]
     return top_k_sorted
 
 @cython.infer_types(True) 
-cpdef py_knn_chain_c(X, k = 5):
+cpdef knn_chain(X, k = 5):
     """Calculates the NN chain algorithm with on the fly distances"""
     
     n = len(X)
