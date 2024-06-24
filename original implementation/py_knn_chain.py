@@ -2,7 +2,14 @@ import numpy as np
 
 def ward(size_a, size_b, pos_a, pos_b):
     """calculates the ward for one cluster to another"""
-    return (size_a * size_b) / (size_a + size_b) * np.sum((pos_a - pos_b)**2)
+    n = pos_a.shape[0]
+    result = 0.0
+    
+    for i in range(n):
+        diff = pos_a[i] - pos_b[i]
+        result += (diff) * (diff)
+    
+    return (size_a * size_b) / (size_a + size_b) * result
 
 def get_top_k(i, size, pos, active, k):
     """Selects the top k of distances list and sorts these."""
@@ -35,7 +42,6 @@ def py_knn_chain(X, k = 5):
             i, j = list(active)
             size_ = size[i] + size[j]
             dist_ = ward(size[i], size[j], pos[i], pos[j])
-            print(type(pos[i]))
             dendrogram.append([i, j, np.sqrt(2 * dist_), size_])
             return dendrogram
         
