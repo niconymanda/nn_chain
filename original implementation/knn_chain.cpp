@@ -51,9 +51,9 @@ int main(){
     // cout << ward(size_a, size_b, pos_a, pos_b);
 
     // TESTING GET_TOP_K
-    vector<int> size = {1,1,1,1};  // Example sizes
-    vector<vector<double>> pos = {{1.0, 2.0}, {4.0, 5.0}, {2.0, 8.0}, {2.0, 10.0}};  // Example positions
-    unordered_set<int> active = {0, 1, 2, 3};  // Example active set
+    vector<int> size = {1,1,1,1};
+    vector<vector<double>> pos = {{1.0, 2.0}, {4.0, 5.0}, {2.0, 8.0}, {2.0, 10.0}};
+    unordered_set<int> active = {0, 1, 2, 3};
 
     vector<int> top_k = get_top_k(0, size, pos, active, 2);
 
