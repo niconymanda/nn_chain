@@ -1,8 +1,12 @@
 #include <iostream>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cmath>
 #include<vector> 
 #include <unordered_set>
 #include <unordered_map>
+#include <string>
 #include <bits/stdc++.h>
 using namespace std;
  
@@ -52,7 +56,6 @@ vector<int> get_top_k(int i, vector<int> size, vector<vector<double>> pos, unord
     vector<int> active_, sorting, top_k, index;
     vector<double> dists;
     double ds;
-
     for (auto j = active.begin(); j != active.end(); ++j) {
         if (*j != i) {
             active_.push_back(*j);
@@ -60,19 +63,10 @@ vector<int> get_top_k(int i, vector<int> size, vector<vector<double>> pos, unord
             dists.push_back( ds );
         }
     }
-    // for (int j = 0; j < active_.size(); j++) {
-    //     cout << active_[j] << endl;
-    //     cout << dists[j] << endl << endl;
-    // }
     sorting = argsort(dists);
     sorting.resize(k);
-
     for (int index = 0; index < k; index++) {
         top_k.push_back(active_[sorting[index]]);
-        // cout << "sorting, top_k, dist: " << endl;
-        // cout << sorting[i] << endl;
-        // cout << top_k[i] << endl;
-        // cout << dists[sorting[i]] << endl;
     }
 
     return top_k;
@@ -100,11 +94,12 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
     while (not active.empty()) {
         // Merge the remaining two clusters
         if (active.size() == 2) {
+            std::cout << "2 remaining: " << endl;
             auto it = active.begin();
             int i = *it;
-            cout << i << endl;
             ++it;
             int j = *it;
+            std::cout << i << " " << j << endl;
             tmp_size = size[i] + size[j];
             tmp_dist = sqrt(2 * ward(size[i], size[j], pos[i], pos[j]) );
             dendrogram.push_back({static_cast<double>(i), static_cast<double>(j), tmp_dist, static_cast<double>(tmp_size)});
@@ -112,26 +107,30 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
         }
         // Start new chain
         if (!chain.size()) {
+            std::cout << "start new chain";
             i = *active.begin();
             chain.push_back(i);
-            tmp_knn = get_top_k(i, size, pos, active, k);
+            tmp_knn = get_top_k(i, size, pos, active, 5);
             knn.push_back(tmp_knn);
         }
         // Continue chain
         while (chain.size()) {
+            std::cout << "in chain: i = ";
             i = chain.back();
+            std::cout << i << endl;
             tmp_knn = knn.back();
             m = -1;
-
+            std::cout << "1-nn: j = " << tmp_knn[0] << endl;
             for (index = 0; index < tmp_knn.size(); index++) {
-                if (active.find(tmp_knn[index]) == active.end()) {
+                if (active.find(tmp_knn[index]) != active.end()) {
                     m = index;
                     break;
                 }
             }
+            std::cout << "m = " << m << endl;
             if (m <= 0) {
                 if (m < 0) {
-                    tmp_knn = get_top_k(i, size, pos, active, k);
+                    tmp_knn = get_top_k(i, size, pos, active, 5);
                 }
                 j = tmp_knn[0];
                 knn.back() = tmp_knn;
@@ -147,40 +146,62 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
                     clusters.insert(mapping[index]);
                 }
                 clusters.insert(tmp_knn[m]);
+                vector<double> dists;
                 for (auto index = clusters.begin(); index != clusters.end(); ++index) {
                     tmp_dist = ward(size[i], size[*index], pos[i], pos[*index]);
                     dists.push_back(tmp_dist);
-                    auto it = next(clusters.begin(), argmin(dists));
-                    j = *it;
                 }
+                cout << argmin(dists) << endl;
+                auto it = next(clusters.begin(), argmin(dists));
+                j = *it;
+                cout << "j = " << j << endl;
             }
             if (chain.size() > 1 && chain[chain.size()-2] == j) {
+                std::cout << "merging " << i << " & " << j << "==> ";
                 break;
             }
             chain.push_back(j);
-            tmp_knn = get_top_k(j, size, pos, active, k);
+            tmp_knn = get_top_k(j, size, pos, active, 5);
             knn.push_back(tmp_knn);
         }
         // Merging i, j
-        tmp_dist = ward(size[i], size[j], pos[i], pos[j]);
+        tmp_dist = sqrt(2 * ward(size[i], size[j], pos[i], pos[j]) );
         tmp_size = size[i] + size[j];
         dendrogram.push_back({static_cast<double>(i), static_cast<double>(j), tmp_dist, static_cast<double>(tmp_size)});
 
         // Update Variables
-        centroid = (size[i] * pos[i] + size[j] * pos[j] ) / tmp_size; //Loop
+        centroid = {};
+        for (index = 0; index < pos[i].size(); index++) {
+            centroid.push_back( (size[i] * pos[i][index] + size[j] * pos[j][index] ) / tmp_size );
+        }
         pos.push_back(centroid);
         new_index = size.size();
         size.push_back(tmp_size);
+        std::cout << new_index << endl;
 
         // Update Mapping
+        unordered_set<int> union_set;
+        for (int index : reverse_mapping[i]) {
+            union_set.insert(index);
+        }
+        for (int index : reverse_mapping[j]) {
+            union_set.insert(index);
+        }
+        for (int index : union_set) {
+            mapping[index] = new_index;
+        }
+        reverse_mapping[new_index] = union_set;
 
+        // Update active set
+        active.erase(k = i);
+        active.erase(k = j);
+        active.insert(new_index);
 
+        chain.erase(chain.end()-2, chain.end());
+        knn.erase(knn.end()-2, knn.end());
     }
-    
 
-    cout << active.empty() << endl;
-
-    return pos;
+    return dendrogram;
 }
 
 int main(){
@@ -198,14 +219,42 @@ int main(){
     // vector<int> top_k = get_top_k(0, size, pos, active, 2);
 
     // TESTING KNN_CHAIN
-    // vector<vector<double>> pos = {{1.0, 2.0}, {4.0, 5.0}};
-    // vector<vector<double>> post = knn_chain(pos);
-    // for (double val : post[0]) {
-    //     cout << val << " ";
-    // }
-    // cout << endl;
+    string filename = "smallX";
+    vector<vector<double>> pos;
+    ifstream file(filename);
+    // Check if the file is open
+    if (file.is_open()) {
+        string line;
+        // Read the file line by line
+        while (getline(file, line)) {
+            vector<double> row;
+            istringstream iss(line);
+            double value;
+            // Parse the line and store values in the row vector
+            while (iss >> value) {
+                row.push_back(value);
+            }
+            // Add the row to the data vector
+            pos.push_back(row);
+        }
+        // Close the file
+        file.close();
+        std::cout << "managed" << endl;
+    } else {
+        cerr << "Unable to open file " << filename << std::endl;
+        return 1;
+    }
 
-    cout << argmin({2,3,0,5,6,0}) << endl;
+    // vector<vector<double>> pos = {{1.0, 2.0}, {4.0, 5.0}, {2.0, 8.0}};
+    vector<vector<double>> d = knn_chain(pos);
+    for (vector<double> dval : d) {
+        for (double val : dval) {
+            std::cout << val << " ";
+        }
+        std::cout << endl;
+    }
+    // cout << endl;
+    // cout << argmin({2,3,0,5,6,0}) << endl;
 
     return 0;
 }
