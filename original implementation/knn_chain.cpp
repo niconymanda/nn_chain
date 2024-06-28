@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <string>
 #include <bits/stdc++.h>
+#include <chrono>
+using namespace std::chrono;
 using namespace std;
  
 vector<int> argsort(vector<double> dists) {
@@ -94,12 +96,10 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
     while (not active.empty()) {
         // Merge the remaining two clusters
         if (active.size() == 2) {
-            std::cout << "2 remaining: " << endl;
             auto it = active.begin();
             int i = *it;
             ++it;
             int j = *it;
-            std::cout << i << " " << j << endl;
             tmp_size = size[i] + size[j];
             tmp_dist = sqrt(2 * ward(size[i], size[j], pos[i], pos[j]) );
             dendrogram.push_back({static_cast<double>(i), static_cast<double>(j), tmp_dist, static_cast<double>(tmp_size)});
@@ -107,7 +107,6 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
         }
         // Start new chain
         if (!chain.size()) {
-            std::cout << "start new chain";
             i = *active.begin();
             chain.push_back(i);
             tmp_knn = get_top_k(i, size, pos, active, 5);
@@ -115,19 +114,15 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
         }
         // Continue chain
         while (chain.size()) {
-            std::cout << "in chain: i = ";
             i = chain.back();
-            std::cout << i << endl;
             tmp_knn = knn.back();
             m = -1;
-            std::cout << "1-nn: j = " << tmp_knn[0] << endl;
             for (index = 0; index < tmp_knn.size(); index++) {
                 if (active.find(tmp_knn[index]) != active.end()) {
                     m = index;
                     break;
                 }
             }
-            std::cout << "m = " << m << endl;
             if (m <= 0) {
                 if (m < 0) {
                     tmp_knn = get_top_k(i, size, pos, active, 5);
@@ -151,13 +146,10 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
                     tmp_dist = ward(size[i], size[*index], pos[i], pos[*index]);
                     dists.push_back(tmp_dist);
                 }
-                cout << argmin(dists) << endl;
                 auto it = next(clusters.begin(), argmin(dists));
                 j = *it;
-                cout << "j = " << j << endl;
             }
             if (chain.size() > 1 && chain[chain.size()-2] == j) {
-                std::cout << "merging " << i << " & " << j << "==> ";
                 break;
             }
             chain.push_back(j);
@@ -177,7 +169,6 @@ vector<vector<double>> knn_chain(vector<vector<double>> X, int k = 5) {
         pos.push_back(centroid);
         new_index = size.size();
         size.push_back(tmp_size);
-        std::cout << new_index << endl;
 
         // Update Mapping
         unordered_set<int> union_set;
@@ -222,39 +213,42 @@ int main(){
     string filename = "smallX";
     vector<vector<double>> pos;
     ifstream file(filename);
-    // Check if the file is open
     if (file.is_open()) {
         string line;
-        // Read the file line by line
         while (getline(file, line)) {
             vector<double> row;
             istringstream iss(line);
             double value;
-            // Parse the line and store values in the row vector
             while (iss >> value) {
                 row.push_back(value);
             }
-            // Add the row to the data vector
             pos.push_back(row);
         }
-        // Close the file
         file.close();
-        std::cout << "managed" << endl;
     } else {
         cerr << "Unable to open file " << filename << std::endl;
         return 1;
     }
 
     // vector<vector<double>> pos = {{1.0, 2.0}, {4.0, 5.0}, {2.0, 8.0}};
+    auto start = high_resolution_clock::now();
     vector<vector<double>> d = knn_chain(pos);
-    for (vector<double> dval : d) {
-        for (double val : dval) {
-            std::cout << val << " ";
-        }
-        std::cout << endl;
-    }
-    // cout << endl;
-    // cout << argmin({2,3,0,5,6,0}) << endl;
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    cout << duration.count() * 0.000001 << endl; 
+    
+    /*
+    0.676254 seconds 
+    => compared to cython which executes in 0.09903653 seconds
+    => compared to SciPy which executes in 0.00512793 seconds
+    */
+
+    // for (vector<double> dval : d) {
+    //     for (double val : dval) {
+    //         // std::cout << val << " ";
+    //     }
+        // std::cout << endl;
+    // }
 
     return 0;
 }
