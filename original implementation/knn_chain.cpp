@@ -3,7 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include<vector> 
+#include <numeric> 
+#include <vector> 
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
@@ -11,35 +12,16 @@
 #include <chrono>
 using namespace std::chrono;
 using namespace std;
- 
-vector<int> argsort(vector<double> dists) {
-    /*argsort the distances*/
-    int n = dists.size();
-    vector<pair<double, int>> sorting;
-    vector<int> indices;
 
 
-    for (int i = 0; i < n; ++i) {
-        sorting.push_back(make_pair(dists[i], i));
-    }
-
-    sort(sorting.begin(), sorting.end());
-
-    for (int i = 0; i < n ; i++) {
-        indices.push_back(sorting[i].second);
-    }
-
-    return indices;
-}
-
-int argmin(vector<double> dists) {
+int argmin(vector<double>& dists) {
     auto min_it = min_element(dists.begin(), dists.end());
     int min_i = distance(dists.begin(), min_it);
     return min_i;
 }
 
 
-double ward(int size_a, int size_b, vector<double> pos_a, vector<double> pos_b) {
+double ward(int size_a, int size_b, vector<double>& pos_a, vector<double>& pos_b) {
     /*calculates the ward for one cluster to another*/
     int i, n = pos_a.size();
     double result, diff, s;
@@ -54,7 +36,7 @@ double ward(int size_a, int size_b, vector<double> pos_a, vector<double> pos_b) 
     return s * result;
 }
 
-vector<int> get_top_k(int i, vector<int> size, vector<vector<double>> pos, unordered_set<int> active, int k) {
+vector<int> get_top_k(int i, const vector<int>& size, vector<vector<double>>& pos, const unordered_set<int>& active, int k) {
     vector<int> active_, sorting, top_k, index;
     vector<double> dists;
     double ds;
@@ -65,10 +47,17 @@ vector<int> get_top_k(int i, vector<int> size, vector<vector<double>> pos, unord
             dists.push_back( ds );
         }
     }
-    sorting = argsort(dists);
-    sorting.resize(k);
-    for (int index = 0; index < k; index++) {
-        top_k.push_back(active_[sorting[index]]);
+    vector<int> indices(dists.size());
+    iota(indices.begin(), indices.end(), 0);
+
+    partial_sort(indices.begin(), indices.begin() + k, indices.end(), [&](int a, int b) {
+        return dists[a] < dists[b];
+    });
+
+    top_k.reserve(k);
+
+    for (int index = 0; index < k; ++index) {
+        top_k.push_back(active_[indices[index]]);
     }
 
     return top_k;
@@ -210,7 +199,7 @@ int main(){
     // vector<int> top_k = get_top_k(0, size, pos, active, 2);
 
     // TESTING KNN_CHAIN
-    string filename = "smallX";
+    string filename = "X";
     vector<vector<double>> pos;
     ifstream file(filename);
     if (file.is_open()) {
@@ -236,19 +225,18 @@ int main(){
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     cout << duration.count() * 0.000001 << endl; 
-    
     /*
-    0.676254 seconds 
-    => compared to cython which executes in 0.09903653 seconds
-    => compared to SciPy which executes in 0.00512793 seconds
+    0.390556 seconds 
+    => compared to cython which executes in 0.362177 seconds
+    => compared to SciPy which executes in 0.015012 seconds
     */
-
-    // for (vector<double> dval : d) {
-    //     for (double val : dval) {
-    //         // std::cout << val << " ";
-    //     }
-        // std::cout << endl;
-    // }
-
+    /*
+    for (vector<double> dval : d) {
+        for (double val : dval) {
+            std::cout << val << " ";
+        }
+        std::cout << endl;
+    }
+    */
     return 0;
 }
